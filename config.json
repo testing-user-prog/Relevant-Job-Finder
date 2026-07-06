@@ -1,0 +1,10 @@
+{
+    "ollama_model_csvmaker": "llama-3.1-8b-instant",
+    "ollama_model_responder": "llama-3.3-70b-versatile",
+    "search_keyword": "Computing Internships",
+    "csv_path": "dataset",
+    "csv_name": "fetchedjobs.csv",
+    "jsearch_api": "<Your API key here",
+    "Huggingface_embedder_model": "all-MiniLM-L6-v2",
+    "groq_api_key": "<Your API key here>"
+}
