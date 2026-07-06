@@ -2,9 +2,10 @@ import requests
 import pandas as pd
 import os
 import json
-import ollama
+from groq import Groq
 
-def extract_fields_from_description(description, model_name):
+def extract_fields_from_description(description, model_name,groq_api):
+    client=Groq(api_key=groq_api)
     prompt = f"""Extract the following fields from this job description.
 Return ONLY a valid JSON object with these exact keys, nothing else:
 {{
@@ -22,13 +23,13 @@ Job Description:
 
 JSON:"""
 
-    response = ollama.chat(
+    response = client.chat.completions.create(
         model=model_name,
-        messages=[{"role": "user", "content": prompt}]
+        messages=[{"role": "user", "content": prompt}],
     )
     
     try:
-        raw = response["message"]["content"]
+        raw = response.choices[0].message.content
         clean = raw.strip().replace("```json", "").replace("```", "").strip()
         return json.loads(clean)
     except:
@@ -42,8 +43,9 @@ JSON:"""
         }
 
 
-def makejobpostingcsv(path, search_keyword, apikey, csvname, model_name):
+def makejobpostingcsv(path, search_keyword, apikey, csvname, model_name,groq_api):
     url = "https://jsearch.p.rapidapi.com/search-v2"
+    
 
     querystring = {
         "query": search_keyword,
@@ -65,7 +67,7 @@ def makejobpostingcsv(path, search_keyword, apikey, csvname, model_name):
         description = job.get("job_description", "")
         
         # extract missing fields using LLM
-        extracted = extract_fields_from_description(description, model_name)
+        extracted = extract_fields_from_description(description, model_name,groq_api)
         jobs.append({
         "Title":              job.get("job_title"),
         "Salary":             job.get("job_salary_string"),

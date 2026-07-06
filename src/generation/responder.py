@@ -1,9 +1,9 @@
 from langchain_classic.chains import RetrievalQA
-from langchain_ollama import OllamaLLM
+from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 
-def get_answer(model_name,vector_db, question):
-    llm = OllamaLLM(model=model_name)
+def get_answer(model_name,vector_db, question, groq_api):
+    llm = ChatGroq(model=model_name, api_key=groq_api)
     
     template = """You are a job recommendation assistant for the Pakistani job market.
     Use ONLY the job listings provided below to answer the candidate's query.
