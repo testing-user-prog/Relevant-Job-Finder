@@ -1,6 +1,6 @@
 # Relevant Job Finder 🇵🇰
 
-A RAG (Retrieval-Augmented Generation) based job recommendation system for the Pakistani job market. It fetches fresh job postings from the web, builds a semantic search index, and uses a local LLM to recommend the most relevant jobs based on your query — in plain English.
+A RAG (Retrieval-Augmented Generation) based job recommendation system for the Pakistani job market. It fetches fresh job postings from the web, builds a semantic search index, and uses a cloud LLM to recommend the most relevant jobs based on your query — in plain English.
 
 ---
 
@@ -13,15 +13,19 @@ Search Keyword → JSearch API → Fresh Jobs CSV
                                       ↓
                          HuggingFace Embeddings + ChromaDB (in-memory)
                                       ↓
-                        User Query → RAG Pipeline → Ollama LLM
+                     MMR Retrieval → Deduplication → Custom Retriever
                                       ↓
-                              Job Recommendations
+                        User Query → RAG Pipeline → Groq LLM
+                                      ↓
+                              Job Recommendations (Streamlit UI)
 ```
 
-1. **CSV Maker** — fetches live job postings from JSearch API based on a search keyword and saves them as a CSV
+1. **CSV Maker** — fetches live job postings from JSearch API based on a search keyword, uses Groq LLM to extract structured fields from job descriptions, and saves them as a CSV
 2. **Data Loader** — reads the CSV, cleans it, and converts each job into a LangChain `Document` object
 3. **Vectorizer** — embeds all job documents using HuggingFace (`all-MiniLM-L6-v2`) and stores them in an in-memory ChromaDB vectorstore
-4. **Responder** — takes the user's natural language query, retrieves the most relevant jobs from the vectorstore, and passes them to a local Ollama LLM to generate a personalized recommendation
+4. **Retriever** — uses MMR (Maximal Marginal Relevance) search to fetch diverse relevant documents, deduplicates them, and wraps them in a custom `StaticListRetriever`
+5. **Responder** — passes retrieved jobs to Groq LLM via a custom prompt and generates structured job recommendations
+6. **Streamlit UI** — a clean web interface where users enter their job preferences and get recommendations instantly
 
 ---
 
@@ -36,13 +40,14 @@ Relevant-Job-Finder/
 │   │   └── data_loader.py      # Loads CSV → LangChain Document objects
 │   │
 │   ├── features/
-│   │   └── vectorizer.py       # Embeds documents → in-memory ChromaDB
+│   │   ├── vectorizer.py       # Embeds documents → in-memory ChromaDB
+│   │   └── retriever.py        # MMR search → deduplication → StaticListRetriever
 │   │
 │   └── generation/
-│       └── responder.py        # RAG chain → Ollama LLM → job recommendations
+│       └── responder.py        # RAG chain → Groq LLM → job recommendations
 │
 ├── dataset/                    # Auto-created, stores fetched jobs CSV
-├── app.py                      # Entry point
+├── app.py                      # Streamlit entry point
 ├── config.json                 # All configuration in one place
 └── requirements.txt
 ```
@@ -69,26 +74,23 @@ source .venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 ```
 
-### 4. Install and start Ollama
-Download from [ollama.com](https://ollama.com/download) then pull the required models:
-```bash
-ollama pull llama3.2:1b       # for CSV field extraction
-ollama pull qwen2.5:7b        # for job recommendations
-```
-
-### 5. Get a JSearch API key
+### 4. Get a JSearch API key
 Sign up for free at [rapidapi.com](https://rapidapi.com) and subscribe to the **JSearch** API (free tier). Copy your API key.
+
+### 5. Get a Groq API key
+Sign up for free at [console.groq.com](https://console.groq.com) and generate an API key.
 
 ### 6. Configure `config.json`
 ```json
 {
-    "ollama_model_csvmaker": "llama3.2:1b",
-    "ollama_model_responder": "qwen2.5:7b",
-    "search_keyword": "Computing Internships",
+    "groq_model_csvmaker": "llama-3.1-8b-instant",
+    "groq_model_responder": "llama-3.3-70b-versatile",
+    "search_keyword": "AI/ML Internships",
     "csv_path": "dataset",
     "csv_name": "fetchedjobs.csv",
     "jsearch_api": "<your JSearch API key here>",
-    "Huggingface_embedder_model": "all-MiniLM-L6-v2"
+    "Huggingface_embedder_model": "all-MiniLM-L6-v2",
+    "groq_api_key": "<your Groq API key here>"
 }
 ```
 
@@ -96,22 +98,15 @@ Sign up for free at [rapidapi.com](https://rapidapi.com) and subscribe to the **
 
 ## Usage
 
-Edit the question in `app.py` to match what you're looking for:
-
-```python
-question = "I am looking for internships that I can do remotely"
-```
-
-Then run:
+Run the Streamlit app:
 ```bash
-python app.py
+streamlit run app.py
 ```
 
-The system will:
-1. Fetch fresh job postings matching your `search_keyword` from JSearch
-2. Build an in-memory semantic search index
-3. Find the most relevant jobs for your query
-4. Generate a recommendation with job title, location, salary, skills, and apply link
+Then:
+1. Enter your job preferences in the text box (e.g. *"I am looking for remote AI internships"*)
+2. Click **Find Jobs**
+3. The system fetches fresh jobs, builds a semantic index, and returns personalized recommendations with apply links
 
 ---
 
@@ -119,13 +114,14 @@ The system will:
 
 | Key | Description |
 |-----|-------------|
-| `ollama_model_csvmaker` | Ollama model used to extract job fields from descriptions |
-| `ollama_model_responder` | Ollama model used to generate job recommendations |
+| `groq_model_csvmaker` | Groq model used to extract job fields from descriptions |
+| `groq_model_responder` | Groq model used to generate job recommendations |
 | `search_keyword` | Keyword sent to JSearch API to fetch jobs |
 | `csv_path` | Folder where the fetched jobs CSV is saved |
 | `csv_name` | Name of the generated CSV file |
 | `jsearch_api` | Your RapidAPI key for JSearch |
 | `Huggingface_embedder_model` | HuggingFace sentence-transformer model for embeddings |
+| `groq_api_key` | Your Groq API key for LLM inference |
 
 ---
 
@@ -136,9 +132,11 @@ The system will:
 | Job Data | JSearch API (via RapidAPI) |
 | Embeddings | HuggingFace `all-MiniLM-L6-v2` |
 | Vector Store | ChromaDB (in-memory) |
-| LLM | Ollama (`llama3.2:1b`, `qwen2.5:7b`) |
+| Retrieval | MMR Search + Custom `StaticListRetriever` |
+| LLM | Groq (`llama-3.1-8b-instant`, `llama-3.3-70b-versatile`) |
 | RAG Framework | LangChain |
 | Data Processing | Pandas |
+| Frontend | Streamlit |
 
 ---
 
@@ -151,11 +149,13 @@ langchain-classic
 langchain-ollama
 langchain-huggingface
 langchain-core
+langchain-groq
 chromadb
 sentence-transformers
 ollama
 requests
 pandas
+streamlit
 ```
 
 ---
@@ -163,16 +163,7 @@ pandas
 ## Notes
 
 - The vectorstore is **in-memory only** — it rebuilds fresh on every run with the latest job data
-- Ollama must be **running in the background** before you run `app.py`
 - The `dataset/` folder is auto-created if it doesn't exist
 - JSearch free tier allows up to 200 requests/month — more than enough for personal use
-
----
-
-## Future Improvements
-
-- Streamlit UI for a cleaner user experience
-- Swap Ollama for Groq API for cloud deployment
-- Add conversational memory for multi-turn job search
-- Support for filtering by location, salary range, and job type
-- Deploy on Streamlit Cloud with Groq as the LLM backend
+- Groq free tier is sufficient for personal and portfolio use
+- Add `config.json` to `.gitignore` to avoid exposing your API keys — use `config.example.json` as a template instead
