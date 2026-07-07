@@ -18,6 +18,7 @@ def get_answer(model_name, question, groq_api, retriever):
     - **Apply Link:** <EXACT link from content, else "No link available">
 
     STRICT RULES:
+    - You MUST suggest only those jobs that match with the USER REQUIREMENTS.
     - You MUST use the bullet points as shown above so it formats correctly.
     - Separate multiple job listings with a single blank line.
     - Do NOT add any introductory text before the listings.

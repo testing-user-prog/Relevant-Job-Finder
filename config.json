@@ -4,7 +4,7 @@
     "search_keyword": "AI/ML Internships",
     "csv_path": "dataset",
     "csv_name": "fetchedjobs.csv",
-    "jsearch_api": "<Enter your API key here>",
+    "jsearch_api": "<Your API key here>",
     "Huggingface_embedder_model": "all-MiniLM-L6-v2",
-    "groq_api_key": "<Enter Your API key here>"
+    "groq_api_key": "<Your API key here>"
 }
