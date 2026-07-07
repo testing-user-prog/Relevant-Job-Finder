@@ -18,7 +18,8 @@ def get_answer(model_name, question, groq_api, retriever):
     - **Apply Link:** <EXACT link from content, else "No link available">
 
     STRICT RULES:
-    - You MUST suggest only those jobs that match with the USER REQUIREMENTS.
+    - FILTER STRICTLY: You must evaluate each job against the Candidate Query. If a job does not closely match the user's requirements (e.g. skills, role, location), you MUST completely exclude it from your output.
+    - If all jobs are excluded after filtering, output "Unable to find the job" and nothing else.
     - You MUST use the bullet points as shown above so it formats correctly.
     - Separate multiple job listings with a single blank line.
     - Do NOT add any introductory text before the listings.
