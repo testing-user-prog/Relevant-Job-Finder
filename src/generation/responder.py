@@ -19,7 +19,7 @@ def get_answer(model_name, question, groq_api, retriever):
 
     STRICT RULES:
     - FILTER STRICTLY: You must evaluate each job against the Candidate Query. If a job does not closely match the user's requirements (e.g. skills, role, location), you MUST completely exclude it from your output.
-    - If all jobs are excluded after filtering, output "Unable to find the job" and nothing else.
+    - If no job is relevant just say "No job found".
     - You MUST use the bullet points as shown above so it formats correctly.
     - Separate multiple job listings with a single blank line.
     - Do NOT add any introductory text before the listings.
