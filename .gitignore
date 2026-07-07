@@ -3,3 +3,5 @@ docs
 temp.txt
 jobfinderapicheck.py
 dataset
+steamlitdemo.py
+.streamlit
